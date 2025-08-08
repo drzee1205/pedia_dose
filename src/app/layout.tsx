@@ -1,34 +1,36 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Lexend, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const notoSans = Noto_Sans({
+  variable: "--font-noto-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "Pedia-Dose - Pediatric Dosage Calculator",
+  description: "A modern pediatric dosage calculator for healthcare professionals and parents. Calculate accurate medication dosages for children based on weight and age.",
+  keywords: ["pediatric", "dosage", "calculator", "medication", "children", "healthcare", "medical"],
+  authors: [{ name: "Pedia-Dose Team" }],
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "Pedia-Dose - Pediatric Dosage Calculator",
+    description: "Calculate accurate medication dosages for children based on weight and age",
+    url: "https://pedia-dose.vercel.app",
+    siteName: "Pedia-Dose",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "Pedia-Dose - Pediatric Dosage Calculator",
+    description: "Calculate accurate medication dosages for children based on weight and age",
   },
 };
 
@@ -40,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${lexend.variable} ${notoSans.variable} antialiased bg-white text-[#111518] font-sans`}
       >
         {children}
         <Toaster />
