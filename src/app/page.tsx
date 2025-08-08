@@ -1,76 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Settings } from "lucide-react";
-
-interface Medication {
-  id: string;
-  name: string;
-  dosagePerKg: number;
-  frequency: string;
-  maxDailyDose?: number;
-  minAge?: number;
-  maxAge?: number;
-}
-
-const medications: Medication[] = [
-  {
-    id: "amoxicillin",
-    name: "Amoxicillin",
-    dosagePerKg: 25,
-    frequency: "Every 8 hours",
-    maxDailyDose: 2000,
-    minAge: 0,
-    maxAge: 216
-  },
-  {
-    id: "ibuprofen",
-    name: "Ibuprofen",
-    dosagePerKg: 5,
-    frequency: "Every 6 hours",
-    maxDailyDose: 1200,
-    minAge: 6,
-    maxAge: 216
-  },
-  {
-    id: "acetaminophen",
-    name: "Acetaminophen",
-    dosagePerKg: 15,
-    frequency: "Every 4 hours",
-    maxDailyDose: 3000,
-    minAge: 0,
-    maxAge: 216
-  },
-  {
-    id: "azithromycin",
-    name: "Azithromycin",
-    dosagePerKg: 10,
-    frequency: "Once daily",
-    maxDailyDose: 500,
-    minAge: 6,
-    maxAge: 216
-  },
-  {
-    id: "prednisolone",
-    name: "Prednisolone",
-    dosagePerKg: 1,
-    frequency: "Once daily",
-    maxDailyDose: 60,
-    minAge: 0,
-    maxAge: 216
-  }
-];
+import { Settings, Search, AlertTriangle, Info } from "lucide-react";
+import { pediatricDrugDB, type PediatricDrug } from "@/lib/pediatric-drug-database";
 
 interface DosageResult {
-  recommendedDosage: number;
-  totalDosage: number;
+  dosage: number;
   frequency: string;
   maxDailyDose?: number;
-  warning?: string;
+  warnings: string[];
+  contraindications?: string[];
+  sideEffects?: string[];
 }
 
 export default function PediaDose() {
@@ -78,6 +22,26 @@ export default function PediaDose() {
   const [age, setAge] = useState("");
   const [selectedMedication, setSelectedMedication] = useState("");
   const [dosageResult, setDosageResult] = useState<DosageResult | null>(null);
+  const [medications, setMedications] = useState<PediatricDrug[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredMedications, setFilteredMedications] = useState<PediatricDrug[]>([]);
+
+  useEffect(() => {
+    // Load common pediatric medications
+    const commonMeds = pediatricDrugDB.getCommonPediatricDrugs();
+    setMedications(commonMeds);
+    setFilteredMedications(commonMeds);
+  }, []);
+
+  useEffect(() => {
+    // Filter medications based on search query
+    if (searchQuery.trim() === "") {
+      setFilteredMedications(medications);
+    } else {
+      const filtered = pediatricDrugDB.searchDrugs(searchQuery);
+      setFilteredMedications(filtered);
+    }
+  }, [searchQuery, medications]);
 
   const calculateDosage = () => {
     if (!weight || !age || !selectedMedication) {
@@ -86,48 +50,13 @@ export default function PediaDose() {
 
     const weightNum = parseFloat(weight);
     const ageNum = parseInt(age);
-    const medication = medications.find(med => med.id === selectedMedication);
-
-    if (!medication) {
-      return;
-    }
-
-    // Check age restrictions
-    if (medication.minAge && ageNum < medication.minAge) {
-      setDosageResult({
-        recommendedDosage: medication.dosagePerKg,
-        totalDosage: 0,
-        frequency: medication.frequency,
-        warning: `This medication is not recommended for children under ${medication.minAge} months.`
-      });
-      return;
-    }
-
-    if (medication.maxAge && ageNum > medication.maxAge) {
-      setDosageResult({
-        recommendedDosage: medication.dosagePerKg,
-        totalDosage: 0,
-        frequency: medication.frequency,
-        warning: `This medication is not recommended for children over ${medication.maxAge} months.`
-      });
-      return;
-    }
-
-    const totalDosage = weightNum * medication.dosagePerKg;
     
-    // Check maximum daily dose
-    let warning = "";
-    if (medication.maxDailyDose && totalDosage > medication.maxDailyDose) {
-      warning = `Warning: Calculated dose exceeds maximum daily dose of ${medication.maxDailyDose}mg. Please consult a healthcare provider.`;
-    }
+    const result = pediatricDrugDB.calculateDosage(selectedMedication, weightNum, ageNum);
+    setDosageResult(result);
+  };
 
-    setDosageResult({
-      recommendedDosage: medication.dosagePerKg,
-      totalDosage: Math.round(totalDosage * 10) / 10,
-      frequency: medication.frequency,
-      maxDailyDose: medication.maxDailyDose,
-      warning: warning || undefined
-    });
+  const getSelectedDrug = (): PediatricDrug | undefined => {
+    return selectedMedication ? pediatricDrugDB.getDrugByName(selectedMedication) : undefined;
   };
 
   return (
@@ -173,14 +102,31 @@ export default function PediaDose() {
           <h3 className="text-[#111518] text-lg font-bold leading-tight tracking-[-0.015em] mb-4">
             Medication
           </h3>
+          
+          {/* Search Input */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#637988]" />
+            <Input
+              placeholder="Search medications..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-12 bg-[#f0f3f4] border-none placeholder:text-[#637988] text-base pl-10"
+            />
+          </div>
+
           <Select value={selectedMedication} onValueChange={setSelectedMedication}>
             <SelectTrigger className="h-14 bg-[#f0f3f4] border-none text-base">
               <SelectValue placeholder="Select Medication" />
             </SelectTrigger>
-            <SelectContent>
-              {medications.map((medication) => (
-                <SelectItem key={medication.id} value={medication.id}>
-                  {medication.name}
+            <SelectContent className="max-h-64 overflow-y-auto">
+              {filteredMedications.map((medication) => (
+                <SelectItem key={medication.id} value={medication.name}>
+                  <div>
+                    <div className="font-medium">{medication.name}</div>
+                    {medication.drugClass && (
+                      <div className="text-xs text-[#637988]">{medication.drugClass}</div>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -195,37 +141,131 @@ export default function PediaDose() {
                 Dosage
               </h3>
               
-              <div className="text-center">
-                <p className="text-[#111518] text-base font-normal leading-normal">
-                  Recommended Dosage: {dosageResult.recommendedDosage}mg/kg
-                </p>
-              </div>
-              
-              <div className="text-center">
-                <p className="text-[#111518] text-base font-normal leading-normal">
-                  Total Dosage: {dosageResult.totalDosage}mg
-                </p>
-              </div>
-              
-              <div className="text-center">
-                <p className="text-[#111518] text-base font-normal leading-normal">
-                  Frequency: {dosageResult.frequency}
-                </p>
-              </div>
+              {dosageResult.dosage > 0 ? (
+                <>
+                  <div className="text-center">
+                    <p className="text-[#111518] text-base font-normal leading-normal">
+                      Total Dosage: {dosageResult.dosage}mg
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-[#111518] text-base font-normal leading-normal">
+                      Frequency: {dosageResult.frequency}
+                    </p>
+                  </div>
 
-              {dosageResult.maxDailyDose && (
+                  {dosageResult.maxDailyDose && (
+                    <div className="text-center">
+                      <p className="text-[#637988] text-sm font-normal leading-normal">
+                        Maximum Daily Dose: {dosageResult.maxDailyDose}mg
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
                 <div className="text-center">
-                  <p className="text-[#637988] text-sm font-normal leading-normal">
-                    Maximum Daily Dose: {dosageResult.maxDailyDose}mg
+                  <p className="text-red-600 text-base font-normal leading-normal">
+                    {dosageResult.warnings[0] || 'Unable to calculate dosage'}
                   </p>
                 </div>
               )}
 
-              {dosageResult.warning && (
-                <div className="text-center">
-                  <p className="text-red-600 text-sm font-normal leading-normal">
-                    {dosageResult.warning}
-                  </p>
+              {/* Warnings */}
+              {dosageResult.warnings && dosageResult.warnings.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800">
+                      <div className="font-medium mb-1">Warnings:</div>
+                      <ul className="list-disc list-inside space-y-1">
+                        {dosageResult.warnings.map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Drug Information */}
+              {getSelectedDrug() && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <div className="font-medium mb-1">Drug Information:</div>
+                      
+                      {getSelectedDrug()?.indications && getSelectedDrug()?.indications!.length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium text-xs">Indications:</div>
+                          <div className="text-xs">
+                            {getSelectedDrug()?.indications?.slice(0, 2).join(', ')}
+                            {getSelectedDrug()?.indications! && getSelectedDrug()?.indications!.length > 2 && '...'}
+                          </div>
+                        </div>
+                      )}
+
+                      {getSelectedDrug()?.dosageForm && getSelectedDrug()?.dosageForm!.length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium text-xs">Available Forms:</div>
+                          <div className="text-xs">
+                            {getSelectedDrug()?.dosageForm?.slice(0, 2).join(', ')}
+                            {getSelectedDrug()?.dosageForm! && getSelectedDrug()?.dosageForm!.length > 2 && '...'}
+                          </div>
+                        </div>
+                      )}
+
+                      {getSelectedDrug()?.specialNotes && getSelectedDrug()?.specialNotes!.length > 0 && (
+                        <div>
+                          <div className="font-medium text-xs">Special Notes:</div>
+                          <div className="text-xs">
+                            {getSelectedDrug()?.specialNotes?.[0]}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contraindications */}
+              {dosageResult.contraindications && dosageResult.contraindications.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-800">
+                      <div className="font-medium mb-1">Contraindications:</div>
+                      <ul className="list-disc list-inside space-y-1">
+                        {dosageResult.contraindications.slice(0, 3).map((contraindication, index) => (
+                          <li key={index} className="text-xs">{contraindication}</li>
+                        ))}
+                        {dosageResult.contraindications.length > 3 && (
+                          <li className="text-xs italic">+{dosageResult.contraindications.length - 3} more</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Side Effects */}
+              {dosageResult.sideEffects && dosageResult.sideEffects.length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-orange-800">
+                      <div className="font-medium mb-1">Potential Side Effects:</div>
+                      <ul className="list-disc list-inside space-y-1">
+                        {dosageResult.sideEffects.slice(0, 3).map((sideEffect, index) => (
+                          <li key={index} className="text-xs">{sideEffect}</li>
+                        ))}
+                        {dosageResult.sideEffects.length > 3 && (
+                          <li className="text-xs italic">+{dosageResult.sideEffects.length - 3} more</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
