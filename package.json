@@ -1,7 +1,30 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
+  "name": "pedia-dose",
   "version": "0.1.0",
+  "description": "A modern pediatric dosage calculator for healthcare professionals and parents. Calculate accurate medication dosages for children based on weight and age.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drzee1205/pedia_dose.git"
+  },
+  "homepage": "https://github.com/drzee1205/pedia_dose#readme",
+  "bugs": {
+    "url": "https://github.com/drzee1205/pedia_dose/issues"
+  },
+  "keywords": [
+    "pediatric",
+    "dosage",
+    "calculator",
+    "medication",
+    "children",
+    "healthcare",
+    "medical",
+    "nextjs",
+    "typescript",
+    "tailwindcss",
+    "shadcn"
+  ],
+  "author": "drzee1205",
   "scripts": {
     "dev": "nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --ext ts,tsx,js,jsx 2>&1 | tee dev.log",
     "build": "next build",
